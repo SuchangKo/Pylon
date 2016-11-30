@@ -1,12 +1,14 @@
 import sys
 import os
 import json
-
 import errno
+import dropbox
+ARCH = 'Mac' #Test 'Mac' or 'Windows'
 
-mainpath = "C:\Pylon"
+mainpath = (ARCH == 'Mac') and "/Users/SuchangKo/Pylon" or "C:\Pylon"
 json_dir = os.path.join(mainpath,"json")
 divide_dir = os.path.join(mainpath,"divide")
+merge_dir = os.path.join(mainpath,"merge")
 divide_size = 20 * 1024 * 1024 # if This Value is 20, Divide Size:20MB
 def make_dir(pathname):
     print(pathname)
@@ -20,8 +22,25 @@ def make_complete_file(filename):
     filename = file_json['filename']
     filesize = file_json['filesize']
     filearray = file_json['arrays']
+    div_total = 0
+
+    #sort
+    filearray = sorted(filearray,key=lambda k: k['id'],reverse=False)
+
+    #Merge
+    merge_filename = os.path.join(merge_dir,filename)
+    if os.path.exists(merge_filename):
+        os.remove(merge_filename)
+
+    for file_index in range(len(filearray)):
+        filenumber = filearray[file_index]['id']
+        div_filename = os.path.join(divide_dir, filename + "." + str(filenumber))
+        div_total = div_total + os.path.getsize(div_filename)
+        save_merge(merge_filename,div_filename)
     print(filename)
-    print(filesize)
+    print("filesize : " + str(filesize))
+    print("div_total : " + str(div_total))
+    print("mergesize  : " + str(os.path.getsize(merge_filename)))
     print(filearray)
 
 
@@ -47,11 +66,16 @@ def get_filesize(filename):
     except os.error:
         print("파일이 없거나 에러입니다.")
 
+def save_merge(filename,div_filename):
+    print(filename+"--"+div_filename)
+    with open(div_filename , 'rb') as div_file:
+        with open(filename, 'ab') as file:
+            file.write(div_file.read())
 
 def save_distribution(cloud,filename,bytearray,number):
     basename = os.path.basename(filename)
     save_filename = os.path.join(divide_dir,basename)
-    print(save_filename + "." + str(number))
+    #print(save_filename + "." + str(number))
     with open(save_filename+"."+str(number), 'wb') as file:
         file.write(bytearray)
 
@@ -59,9 +83,12 @@ def main():
     make_dir(mainpath)
     make_dir(divide_dir)
     make_dir(json_dir)
+    make_dir(merge_dir)
 
-    filename = "C:/Pylon/ubuntu.iso"
+    filename = os.path.join(mainpath,"ubuntu.iso");
     filesize = get_filesize(filename)
+    file_divide_total = int((filesize / 1024.0 / 1024.0 / 20.0) + 1)
+
 
     # Read File And Distribution
     fileinfo = {}
@@ -76,6 +103,7 @@ def main():
             cloud = "dropbox"
             account = "test"
             save_distribution(cloud,filename,bytearray,index)
+            print(str(index+1)+"/"+str(file_divide_total) + " {0:.2f}%".format(round(((index+1)/file_divide_total*100),2)) )
             dist_fileinfo = {}
             dist_fileinfo["id"] = index
             dist_fileinfo["cloud"] = cloud
