@@ -3,9 +3,11 @@ import os
 import json
 import errno
 import dropbox
-ARCH = 'Mac' #Test 'Mac' or 'Windows'
+import platform
 
-mainpath = (ARCH == 'Mac') and "/Users/SuchangKo/Pylon" or "C:\Pylon"
+ARCH = platform.system() #Test 'Mac' or 'Windows'
+
+mainpath = (ARCH == "Windows") and "C:\Pylon" or "/Users/SuchangKo/Pylon"
 json_dir = os.path.join(mainpath,"json")
 divide_dir = os.path.join(mainpath,"divide")
 merge_dir = os.path.join(mainpath,"merge")
@@ -41,7 +43,7 @@ def make_complete_file(filename):
     print("filesize : " + str(filesize))
     print("div_total : " + str(div_total))
     print("mergesize  : " + str(os.path.getsize(merge_filename)))
-    print(filearray)
+    print("File Check : "+ ((os.path.getsize(merge_filename) == filesize) and "Success" or "Fail"))
 
 
 def get_filesize(filename):
